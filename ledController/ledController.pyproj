@@ -4,13 +4,14 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>c700b930-b62e-42de-81e5-b7eb3b8cb2d8</ProjectGuid>
     <ProjectHome>.</ProjectHome>
-    <StartupFile>ledController.py</StartupFile>
+    <StartupFile>threadController.py</StartupFile>
     <SearchPath>
     </SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
     <OutputPath>.</OutputPath>
     <Name>ledController</Name>
     <RootNamespace>ledController</RootNamespace>
+    <IsWindowsApplication>False</IsWindowsApplication>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
     <DebugSymbols>true</DebugSymbols>
@@ -21,10 +22,20 @@
     <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="ledController.py" />
+    <Compile Include="serialController.py" />
     <Compile Include="ScreenColorAnalyzer.py">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="threadController.py">
+      <SubType>Code</SubType>
+    </Compile>
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="arduino_fw\" />
+    <Folder Include="arduino_fw\multiLedWithIndex_works\" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="arduino_fw\multiLedWithIndex_works\multiLedWithIndex_works.ino" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets" />
   <!-- Uncomment the CoreCompile target to enable the Build command in

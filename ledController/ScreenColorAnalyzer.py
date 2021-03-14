@@ -6,28 +6,40 @@ LOW_THRESHOLD = 10
 MID_THRESHOLD = 40
 HIGH_THRESHOLD = 240
 
-X_STRIP_LED_CT = 144
-Y_STRIP_LED_CT = 40
+X_STRIP_LED_CT = 8
+Y_STRIP_LED_CT = 4
 
-def setup_led_indices():
-    return {"topStrip":{
-                    "start":0,
-                    "stop":X_STRIP_LED_CT - 1
-                    },
-                "rStrip":{
-                    "start":X_STRIP_LED_CT,
-                    "stop":X_STRIP_LED_CT + Y_STRIP_LED_CT
-                    },
-                "botStrip":{
-                    "start":X_STRIP_LED_CT + Y_STRIP_LED_CT + 1,
-                    "stop":(X_STRIP_LED_CT * 2) + LED_CT_HEIGHT + 1
-                    },
-                "lStrip":{
-                    "start":(X_STRIP_LED_CT * 2) + (LED_CT_HEIGHT + 2),
-                    "stop":(X_STRIP_LED_CT * 2) + (LED_CT_HEIGHT * 2) + 2
-                    }
-                }
+# Grabs screenshot of current window, calls img_avg (including on zones if present)
+def screen_avg(getTopRow=False, getBotRow=False, getLeftCol=False, getRightCol=False):
+    img = getDisplaysAsImages()[0]
 
+    #Use resize for color averaging
+    resizedImg = img.resize(size=(X_STRIP_LED_CT, Y_STRIP_LED_CT + 2)).load()  
+    
+    topRowColorData_bytes = None
+    botRowColorData_bytes = None
+    leftColColorData_bytes = None
+    rightColColorData_bytes = None
+
+    if getTopRow:
+        print("Getting screen top row data...")
+        #Top row data
+        topRowColorData_array = [60]
+        for pixelIndex in range(X_STRIP_LED_CT):
+            topRowColorData_array.append(pixelIndex)
+            topRowColorData_array.append(resizedImg[pixelIndex,0][0])
+            topRowColorData_array.append(resizedImg[pixelIndex,0][1])
+            topRowColorData_array.append(resizedImg[pixelIndex,0][2])
+        topRowColorData_array.append(62)
+        print(topRowColorData_array)
+        topRowColorData_bytes = bytes(topRowColorData_array)
+
+    return {"topRow":topRowColorData_bytes,
+            "botRow":botRowColorData_bytes,
+            "leftCol":leftColColorData_bytes,
+            "rightCol":rightColColorData_bytes}
+
+"""
 # Return avg color of all pixels and ratio of dark pixels for a given image
 def img_avg(img):
     dark_pixels = 1
@@ -76,25 +88,4 @@ def img_avg(img):
         'dark_ratio': float(dark_pixels) / float(n) * 100
     }
     return data
-
-# Grabs screenshot of current window, calls img_avg (including on zones if present)
-def screen_avg():
-    screen_data = {}
-
-    # Win version uses DesktopMagic for multiple displays
-    if params.BUILD == 'win':
-        try:
-            img = getDisplaysAsImages()
-        except IndexError:
-            display_check()
-
-    resizedImg = img.resize(LED_CT_WIDTH, LED_CT_HEIGHT + 2)  #x strips to the corners, y strips between x strip ends
-    
-    
-
-
-
-
-
-def get_monitor_screenshots():
-    return getDisplaysAsImages()
+"""
