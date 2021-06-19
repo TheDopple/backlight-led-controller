@@ -15,3 +15,13 @@ class serialController():
             print("Serial port open")
         except:
             print("Serial port issues")
+
+    def send(data):
+        """
+            PARAMS:
+                data(list<int>)
+                    Microcontroller serial com port
+        """
+        sendData = [60]
+        sendData.extend(data)
+        sendData.append(62)

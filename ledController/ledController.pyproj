@@ -4,7 +4,7 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>c700b930-b62e-42de-81e5-b7eb3b8cb2d8</ProjectGuid>
     <ProjectHome>.</ProjectHome>
-    <StartupFile>threadController.py</StartupFile>
+    <StartupFile>threadController.py COM3</StartupFile>
     <SearchPath>
     </SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
@@ -22,8 +22,8 @@
     <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="serialController.py" />
-    <Compile Include="ScreenColorAnalyzer.py">
+    <Compile Include="serialController_deprecated.py" />
+    <Compile Include="ScreenColorAnalyzer_deprecated.py">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="threadController.py">

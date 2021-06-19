@@ -1,13 +1,11 @@
 //TODO: Fix init procedure
-
-
 #include <FastLED.h>
 
 #define DATA_PIN            2
 #define LED_TYPE            WS2812B
 #define COLOR_ORDER         GRB
 #define BRIGHTNESS          96
-#define LED_SEGMENTS        8
+#define LED_SEGMENTS        32
 #define NUM_LEDS            144
 CRGB leds[NUM_LEDS];
 
@@ -67,16 +65,8 @@ void showNewData() {
   if (newData == true) {
     if (inputLength % 4 == 0) {
       for (int i = 0; i < inputLength / 4; i++) {
-        int segment_index = (int)receivedChars[i*4];
-        int r = (int)receivedChars[i*4+1];
-        int g = (int)receivedChars[i*4+2];
-        int b = (int)receivedChars[i*4+3];
-  
-        Serial.print(String("LED Index: ") + segment_index);
-        Serial.println(String("RGB: ") + r + " " + g + " " + b);
-
         for (int j = 0; j < NUM_LEDS/LED_SEGMENTS; j++) {
-          leds[segment_index * NUM_LEDS/LED_SEGMENTS + j] = CRGB(r, g, b);
+          leds[(int)receivedChars[i*4] * NUM_LEDS/LED_SEGMENTS + j] = CRGB((int)receivedChars[i*4+1], (int)receivedChars[i*4+2], (int)receivedChars[i*4+3]);
         }
       }
       FastLED.show();

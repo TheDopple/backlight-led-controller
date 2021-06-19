@@ -1,13 +1,12 @@
+from desktopmagic.screengrab_win32 import getDisplaysAsImages
 
-from PIL import ImageEnhance
-from desktopmagic.screengrab_win32 import getDisplaysAsImages, getRectAsImage
-
-LOW_THRESHOLD = 10
-MID_THRESHOLD = 40
-HIGH_THRESHOLD = 240
-
-X_STRIP_LED_CT = 8
+X_STRIP_LED_CT = 16
 Y_STRIP_LED_CT = 4
+    
+topRowColorData_array = None
+botRowColorData_array = None
+leftColColorData_array = None
+rightColColorData_array = None
 
 # Grabs screenshot of current window, calls img_avg (including on zones if present)
 def screen_avg(getTopRow=False, getBotRow=False, getLeftCol=False, getRightCol=False):
@@ -15,31 +14,25 @@ def screen_avg(getTopRow=False, getBotRow=False, getLeftCol=False, getRightCol=F
 
     #Use resize for color averaging
     resizedImg = img.resize(size=(X_STRIP_LED_CT, Y_STRIP_LED_CT + 2)).load()  
-    
-    topRowColorData_bytes = None
-    botRowColorData_bytes = None
-    leftColColorData_bytes = None
-    rightColColorData_bytes = None
 
     if getTopRow:
-        print("Getting screen top row data...")
         #Top row data
-        topRowColorData_array = [60]
         for pixelIndex in range(X_STRIP_LED_CT):
             topRowColorData_array.append(pixelIndex)
             topRowColorData_array.append(resizedImg[pixelIndex,0][0])
             topRowColorData_array.append(resizedImg[pixelIndex,0][1])
             topRowColorData_array.append(resizedImg[pixelIndex,0][2])
-        topRowColorData_array.append(62)
-        print(topRowColorData_array)
-        topRowColorData_bytes = bytes(topRowColorData_array)
 
-    return {"topRow":topRowColorData_bytes,
-            "botRow":botRowColorData_bytes,
-            "leftCol":leftColColorData_bytes,
-            "rightCol":rightColColorData_bytes}
+    return {"topRow":topRowColorData_array,
+            "botRow":botRowColorData_array,
+            "leftCol":leftColColorData_array,
+            "rightCol":rightColColorData_array}
 
 """
+LOW_THRESHOLD = 10
+MID_THRESHOLD = 40
+HIGH_THRESHOLD = 240
+
 # Return avg color of all pixels and ratio of dark pixels for a given image
 def img_avg(img):
     dark_pixels = 1

@@ -1,85 +1,69 @@
 //TODO: Fix init procedure
 
-
 #include <FastLED.h>
 
 #define DATA_PIN            2
 #define LED_TYPE            WS2812B
 #define COLOR_ORDER         GRB
 #define BRIGHTNESS          96
+#define LED_SEGMENTS        36
 #define NUM_LEDS            144
+
 CRGB leds[NUM_LEDS];
 
+const byte rxByteLength = LED_SEGMENTS * 3; //LED count * RGB (3B), max pld len
 
-const byte numChars = NUM_LEDS * 4; //LED count * indexRGB (4B)
-char receivedChars[numChars];
-
+char receivedBytes[rxByteLength];
 boolean newData = false;
-int inputLength = 0;
 
 void setup() {
+  //This is the programming USB port
   Serial.begin(115200);
+  while (!Serial) {
+    ; // wait for serial port to connect. Needed for Native USB only
+  }
+  
   // tell FastLED about the LED strip configuration
-  FastLED.addLeds<LED_TYPE,DATA_PIN,COLOR_ORDER>(leds, NUM_LEDS).setCorrection(TypicalLEDStrip);
+  FastLED.addLeds<LED_TYPE, DATA_PIN, COLOR_ORDER>(leds, NUM_LEDS).setCorrection(TypicalLEDStrip);
+  
   // set master brightness control
   FastLED.setBrightness(BRIGHTNESS);
 }
 
 void loop() {
-  recvWithStartEndMarkers();
+  recv();
   showNewData();
 }
 
-void recvWithStartEndMarkers() {
-  static boolean recvInProgress = false;
-  static byte ndx = 0;
-  char startMarker = '<';
-  char endMarker = '>';
+void recv() {
+  int serialReadIndex = 0;
   char rc;
  
   while (Serial.available() > 0 && newData == false) {
     rc = Serial.read();
-
-    if (recvInProgress == true) {
-      if (rc != endMarker) {
-        receivedChars[ndx] = rc;
-        ndx++;
-        inputLength++;
-        if (ndx >= numChars) {
-          ndx = numChars - 1;
-        }
-      }
-      else {
-        receivedChars[ndx] = '\0'; // terminate the string
-        recvInProgress = false;
-        ndx = 0;
-        newData = true;
-      }
-    }
-    else if (rc == startMarker) {
-      recvInProgress = true;
+    
+    receivedBytes[serialReadIndex] = rc;
+    serialReadIndex++;
+    
+    if (serialReadIndex == rxByteLength){
+      newData = true;
     }
   }
 }
 
 void showNewData() {
+  int ledsPerSegment = NUM_LEDS / LED_SEGMENTS;
   if (newData == true) {
-    if (inputLength % 4 == 0) {
-      for (int i = 0; i < inputLength / 4; i++) {
-        int led_index = (int)receivedChars[i*4];
-        int r = (int)receivedChars[i*4+1];
-        int g = (int)receivedChars[i*4+2];
-        int b = (int)receivedChars[i*4+3];
-  
-        Serial.print(String("LED Index: ") + led_index);
-        Serial.println(String("RGB: ") + r + " " + g + " " + b);
-        
-        leds[led_index] = CRGB(r, g, b);
-        FastLED.show();
+    for (int segmentIndex = 0; segmentIndex < rxByteLength / 3; segmentIndex++) {
+      int r = (int)receivedBytes[segmentIndex * 3 + 0];
+      int g = (int)receivedBytes[segmentIndex * 3 + 1];
+      int b = (int)receivedBytes[segmentIndex * 3 + 2];
+
+      for (int j = 0; j < ledsPerSegment; j++) {
+        leds[segmentIndex * ledsPerSegment + j] = CRGB(r, g, b);
       }
     }
-
-    inputLength = 0;
-    newData = false;
+    FastLED.show();
   }
+  newData = false;
 }

@@ -1,20 +1,62 @@
-import threading
+"""
+    Seems to cap out around 16 segments
+"""
+
+import argparse
+import serial
 import time
+import os
+import d3dshot
 
-import serialController
-from ScreenColorAnalyzer import screen_avg
+def main(serialPort, xSegs, ySegs, refreshRate):
+    print("Starting LED Controller...")
 
-def main():
-    print("Starting LED Controller")
-    sc = serialController.serialController(port="COM6", baud=115200)
-    while sc.ser.isOpen():
-        screenData = screen_avg(getTopRow=True)
-        
-        if screenData["topRow"] != None:
-            print(sc.ser.write(screenData["topRow"]))
+    #Serial cxn to Arduino
+    resetSerial = False
+    resetSerialTimer = 600 # resetSerial cxn every 600s Not implemented yet
+    
+    while not resetSerial:
+        ser = serial.Serial(port=serialPort, baudrate=115200)
 
-        time.sleep(1)
-        #print(sc.ser.readlines())
+        d = d3dshot.create()
+        d.display = d.displays[0]
+    
+        while ser.isOpen():
+            #For debug purposes
+            #cycleTimeStart = time.time() 
 
+            #Take screenshot
+            img = d.screenshot()
+            #Use resize for color averaging
+            resizedImg = img.resize(size=(xSegs, ySegs)).load()
+
+            #Build serial data
+            serialData = []
+            for pixelIndex in range(xSegs):
+                serialData.append(resizedImg[pixelIndex,0][0]) #1B Red value uint_8
+                serialData.append(resizedImg[pixelIndex,0][1]) #1B Blue value uint_8
+                serialData.append(resizedImg[pixelIndex,0][2]) #1B Green value uint_8
+                print("Segment Index: {}\tR: {}\tG: {}\tB: {}".format(pixelIndex, 
+                                                                    resizedImg[pixelIndex,0][0],
+                                                                    resizedImg[pixelIndex,0][1],
+                                                                    resizedImg[pixelIndex,0][2]))
+            serialData.append(10) #\n to complete serial data
+
+            ser.write(bytes(serialData))
+            ser.reset_input_buffer() #Dump rx buffer.  We don't care about serial returns
+
+            #print("Cycle runtime: {} ms".format(round(time.time() - cycleTimeStart, 2))) # .1 s           
+            time.sleep(1/refreshRate)
+    
 if __name__=="__main__":
-    main()
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('serialPort', help="Serial port")
+    parser.add_argument('--xSegs', '-x', default=16, help='X LED segment count. NOTE: LED Ct/Segments must be an int')
+    parser.add_argument('--ySegs', '-y', default=8, help='Y screen segment count. Used for sampling resolution.')
+    parser.add_argument('--refreshRate', '-z', default=120, help='Refresh rate Hz')
+    #parser.add_argument('--redBias', '-r', default=16, help='Red RGB value bias') #Maybe?
+    #parser.add_argument('--greenBias', '-g', default=16, help='Green RGB value bias')
+    #parser.add_argument('--blueBias', '-b', default=120, help='Blue RGB value bias')
+    args = parser.parse_args()
+    
+    main(args.serialPort, int(args.xSegs), int(args.ySegs), int(args.refreshRate))
