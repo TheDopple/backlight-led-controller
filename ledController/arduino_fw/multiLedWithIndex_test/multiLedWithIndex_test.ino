@@ -1,77 +1,86 @@
 //TODO: Fix init procedure
-#include <FastLED.h>
 
+#include <FastLED.h>
 #define DATA_PIN            2
 #define LED_TYPE            WS2812B
 #define COLOR_ORDER         GRB
 #define BRIGHTNESS          96
-#define LED_SEGMENTS        32
+#define LED_SEGMENTS        16
 #define NUM_LEDS            144
+
 CRGB leds[NUM_LEDS];
 
+const int LEDS_PER_SEGMENT = NUM_LEDS / LED_SEGMENTS;
+const unsigned int MAX_INPUT = LED_SEGMENTS * 4 + 1; // RGB/LED_Segments + EOL chr //{index}RGB = pld/segment
+unsigned int segmentUpdateCt = 0;
 
-const byte numChars = NUM_LEDS * 4; //LED count * indexRGB (4B)
-char receivedChars[numChars];
-
-boolean newData = false;
-int inputLength = 0;
-
-void setup() {
-  Serial.begin(115200);
+void setup () {
+  Serial.begin (115200);
+  
   // tell FastLED about the LED strip configuration
-  FastLED.addLeds<LED_TYPE,DATA_PIN,COLOR_ORDER>(leds, NUM_LEDS).setCorrection(TypicalLEDStrip);
+  FastLED.addLeds<LED_TYPE, DATA_PIN, COLOR_ORDER>(leds, NUM_LEDS).setCorrection(TypicalLEDStrip);
   // set master brightness control
   FastLED.setBrightness(BRIGHTNESS);
 }
 
-void loop() {
-  recvWithStartEndMarkers();
-  showNewData();
-}
+void process_data (const char * data) {
+  
+  Serial.print("First segment to data: ");
+  Serial.print(data[0], DEC);
+  Serial.print(data[1], DEC);
+  Serial.print(data[2], DEC);
+  Serial.println(data[3], DEC);
+  
+  for (int s = 0; s < segmentUpdateCt; s++) {
+    int segmentIndex = data[s * 4 + 0];
+    Serial.print("Segment Index: ");
+    Serial.println(segmentIndex, DEC);
 
-void recvWithStartEndMarkers() {
-  static boolean recvInProgress = false;
-  static byte ndx = 0;
-  char startMarker = '<';
-  char endMarker = '>';
-  char rc;
- 
-  while (Serial.available() > 0 && newData == false) {
-    rc = Serial.read();
+    int r = data[s * 4 + 1];
+    int g = data[s * 4 + 2];
+    int b = data[s * 4 + 3];
+    Serial.print("R: ");
+    Serial.println(r, DEC);
+    
+    Serial.print("G: ");
+    Serial.println(g, DEC);
+    
+    Serial.print("B: ");
+    Serial.println(b, DEC);
 
-    if (recvInProgress == true) {
-      if (rc != endMarker) {
-        receivedChars[ndx] = rc;
-        ndx++;
-        inputLength++;
-        if (ndx >= numChars) {
-          ndx = numChars - 1;
-        }
-      }
-      else {
-        receivedChars[ndx] = '\0'; // terminate the string
-        recvInProgress = false;
-        ndx = 0;
-        newData = true;
-      }
+    for (int j = 0; j < LEDS_PER_SEGMENT; j++) {
+      int ledIndex = segmentIndex * LEDS_PER_SEGMENT + j;
+      //Serial.print("LED index: ");
+      //Serial.println(ledIndex, DEC);
+      leds[ledIndex] = CRGB(r, g, b);
     }
-    else if (rc == startMarker) {
-      recvInProgress = true;
-    }
+    FastLED.show();
   }
 }
 
-void showNewData() {
-  if (newData == true) {
-    if (inputLength % 4 == 0) {
-      for (int i = 0; i < inputLength / 4; i++) {
-        for (int j = 0; j < NUM_LEDS/LED_SEGMENTS; j++) {
-          leds[(int)receivedChars[i*4] * NUM_LEDS/LED_SEGMENTS + j] = CRGB((int)receivedChars[i*4+1], (int)receivedChars[i*4+2], (int)receivedChars[i*4+3]);
-        }
+void processIncomingByte (const byte inByte) {
+  static char input_line[MAX_INPUT];
+  static unsigned int input_pos = 0;
+
+  switch (inByte) {
+    //THIS IS THE ISSUE '\n' == 10
+    case '\n':   // end of text 
+      if (input_pos % 4 == 0) {
+        input_line[input_pos] = 0;          // terminating null byte
+        segmentUpdateCt = input_pos / 4;
+        process_data(input_line);           // terminator reached! process input_line here ...
+        input_pos = 0;                      // reset buffer for next time
+        break;
       }
-      FastLED.show();
-    }
-    inputLength = 0;
-    newData = false;
+    default:
+      if (input_pos < (MAX_INPUT - 1))    // keep adding if not full ... allow for terminating null byte
+        input_line[input_pos++] = inByte;
+      break;
+  }
+}
+
+void loop() {
+  while (Serial.available () > 0) {       // if serial data available, process it
+    processIncomingByte(Serial.read());
   }
 }

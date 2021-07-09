@@ -1,7 +1,6 @@
 """
     Seems to cap out around 16 segments
 """
-
 import argparse
 import serial
 import time
@@ -21,10 +20,8 @@ def main(serialPort, xSegs, ySegs, refreshRate):
         d = d3dshot.create()
         d.display = d.displays[0]
     
+        pixelColorState = {}
         while ser.isOpen():
-            #For debug purposes
-            #cycleTimeStart = time.time() 
-
             #Take screenshot
             img = d.screenshot()
             #Use resize for color averaging
@@ -32,15 +29,20 @@ def main(serialPort, xSegs, ySegs, refreshRate):
 
             #Build serial data
             serialData = []
+            serialData.append(60) #< to start serial data
             for pixelIndex in range(xSegs):
-                serialData.append(resizedImg[pixelIndex,0][0]) #1B Red value uint_8
-                serialData.append(resizedImg[pixelIndex,0][1]) #1B Blue value uint_8
-                serialData.append(resizedImg[pixelIndex,0][2]) #1B Green value uint_8
-                print("Segment Index: {}\tR: {}\tG: {}\tB: {}".format(pixelIndex, 
-                                                                    resizedImg[pixelIndex,0][0],
-                                                                    resizedImg[pixelIndex,0][1],
-                                                                    resizedImg[pixelIndex,0][2]))
-            serialData.append(10) #\n to complete serial data
+                r = resizedImg[pixelIndex,0][0]
+                g = resizedImg[pixelIndex,0][1]
+                b = resizedImg[pixelIndex,0][2]
+
+                if pixelColorState.get(pixelIndex, None) != [r,g,b]:
+                    serialData.append(pixelIndex)
+                    serialData.append(r) #1B Red value uint_8
+                    serialData.append(g) #1B Blue value uint_8
+                    serialData.append(b) #1B Green value uint_8
+                    pixelColorState.update({pixelIndex:[r,g,b]})
+                    print({pixelIndex:[r,g,b]})
+            serialData.append(62) #> to complete serial data
 
             ser.write(bytes(serialData))
             ser.reset_input_buffer() #Dump rx buffer.  We don't care about serial returns

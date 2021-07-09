@@ -25,7 +25,7 @@ void setup () {
 void process_data (const char * data) {
   for (int segmentIndex = 0; segmentIndex < LED_SEGMENTS; segmentIndex++) {
     for (int j = 0; j < LEDS_PER_SEGMENT; j++) {
-      leds[segmentIndex * LEDS_PER_SEGMENT + j] = CRGB((int)data[segmentIndex * 3 + 0], (int)data[segmentIndex * 3 + 1], (int)data[segmentIndex * 3 + 2]);
+      leds[segmentIndex * 3 + 0 * LEDS_PER_SEGMENT + j] = CRGB((int)data[segmentIndex * 3 + 1], (int)data[segmentIndex * 3 + 2], (int)data[segmentIndex * 3 + 3]);
     }
     FastLED.show();
   }

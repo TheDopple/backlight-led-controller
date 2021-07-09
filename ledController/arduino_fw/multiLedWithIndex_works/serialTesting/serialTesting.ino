@@ -1,39 +1,12 @@
-//TODO: Fix init procedure
-
-#include <FastLED.h>
-#define DATA_PIN            2
-#define LED_TYPE            WS2812B
-#define COLOR_ORDER         GRB
-#define BRIGHTNESS          96
 #define LED_SEGMENTS        16
-#define NUM_LEDS            144
 
-CRGB leds[NUM_LEDS];
-
-const int LEDS_PER_SEGMENT = NUM_LEDS / LED_SEGMENTS;
-const unsigned int MAX_INPUT = LED_SEGMENTS * 3 + 1; // RGB/LED_Segments + EOL chr
+const unsigned int MAX_INPUT = LED_SEGMENTS * 4 + 1; // {index}{r}{g}{b}...{eof}
 
 void setup () {
   Serial.begin (115200);
-  
-  // tell FastLED about the LED strip configuration
-  FastLED.addLeds<LED_TYPE, DATA_PIN, COLOR_ORDER>(leds, NUM_LEDS).setCorrection(TypicalLEDStrip);
-  // set master brightness control
-  FastLED.setBrightness(BRIGHTNESS);
 }
 
 void process_data (const char * data) {
-  for (int segmentIndex = 0; segmentIndex < LED_SEGMENTS; segmentIndex++) {
-    int r = (int)data[segmentIndex * 3 + 0];
-    int g = (int)data[segmentIndex * 3 + 1];
-    int b = (int)data[segmentIndex * 3 + 2];
-
-    for (int j = 0; j < LEDS_PER_SEGMENT; j++) {
-      leds[segmentIndex * LEDS_PER_SEGMENT + j] = CRGB(r, g, b);
-    }
-    FastLED.show();
-  }
-  
   Serial.println(data);
 }
 
@@ -42,13 +15,10 @@ void processIncomingByte (const byte inByte) {
   static unsigned int input_pos = 0;
 
   switch (inByte) {
-    case '\n':   // end of text
+    case '\n':                            // end of text
       input_line[input_pos] = 0;          // terminating null byte
       process_data(input_line);           // terminator reached! process input_line here ...
       input_pos = 0;                      // reset buffer for next time
-      break;
-      
-    case '\r':                            // discard carriage return
       break;
       
     default:

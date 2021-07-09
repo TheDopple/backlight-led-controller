@@ -19,20 +19,20 @@ boolean newData = false;
 int inputLength = 0;
 
 void setup() {
-    Serial.begin(115200);
-    // tell FastLED about the LED strip configuration
-    FastLED.addLeds<LED_TYPE, DATA_PIN, COLOR_ORDER>(leds, NUM_LEDS).setCorrection(TypicalLEDStrip);
-    // set master brightness control
-    FastLED.setBrightness(BRIGHTNESS);
+  Serial.begin(115200);
+  // tell FastLED about the LED strip configuration
+  FastLED.addLeds<LED_TYPE,DATA_PIN,COLOR_ORDER>(leds, NUM_LEDS).setCorrection(TypicalLEDStrip);
+  // set master brightness control
+  FastLED.setBrightness(BRIGHTNESS);
 
-    for (int i = 0; i < NUM_LEDS; i++) {
-        leds[i] = CRGB(0, 0, 0);
-    }
+  for (int i = 0; i < NUM_LEDS; i++) {
+    leds[i] = CRGB(0,0,0);
+  }
 }
 
 void loop() {
-    recvWithStartEndMarkers();
-    showNewData();
+  recvWithStartEndMarkers();
+  showNewData();
 }
 
 void recvWithStartEndMarkers() {
@@ -41,7 +41,7 @@ void recvWithStartEndMarkers() {
     char startMarker = '<';
     char endMarker = '>';
     char rc;
-
+ 
     while (Serial.available() > 0 && newData == false) {
         rc = Serial.read();
 
@@ -71,26 +71,26 @@ void recvWithStartEndMarkers() {
 //<0000>
 
 void showNewData() {
-    if (newData == true) {
-        Serial.println(receivedChars);
-        if (inputLength % 4 == 0) {
-            for (int i = 0; i < inputLength / 4; i++) {
-                int segment_index = (int)receivedChars[i * 4];
-                int r = (int)receivedChars[i * 4 + 1];
-                int g = (int)receivedChars[i * 4 + 2];
-                int b = (int)receivedChars[i * 4 + 3];
+  if (newData == true) {
+    Serial.println(receivedChars);
+    if (inputLength % 4 == 0) {
+      for (int i = 0; i < inputLength / 4; i++) {
+        int segment_index = (int)receivedChars[i*4];
+        int r = (int)receivedChars[i*4+1];
+        int g = (int)receivedChars[i*4+2];
+        int b = (int)receivedChars[i*4+3];
 
-                Serial.print("Segment Index: ");
-                Serial.println(segment_index);
-                Serial.println(String("RGB: ") + r + " " + g + " " + b);
+        Serial.print("Segment Index: ");
+        Serial.println(segment_index);
+        Serial.println(String("RGB: ") + r + " " + g + " " + b);
 
-                for (int j = 0; j < leds_per_segment; j++) {
-                    leds[segment_index * leds_per_segment + j] = CRGB(r, g, b);
-                }
-            }
-            FastLED.show();
+        for (int j = 0; j < leds_per_segment; j++) {
+          leds[segment_index * leds_per_segment + j] = CRGB(r, g, b);
         }
-        inputLength = 0;
-        newData = false;
+      }
+      FastLED.show();
     }
+    inputLength = 0;
+    newData = false;
+  }
 }
