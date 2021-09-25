@@ -4,25 +4,26 @@
 import argparse
 import serial
 import time
-import os
 import d3dshot
 
 def main(serialPort, xSegs, ySegs, refreshRate):
     print("Starting LED Controller...")
 
     #Serial cxn to Arduino
-    resetSerial = False
     resetSerialTimer = 600 # resetSerial cxn every 600s Not implemented yet
-    
-    while not resetSerial:
-        ser = serial.Serial(port=serialPort, baudrate=115200)
+ 
+    d = d3dshot.create()
+    d.display = d.displays[0]   
 
-        d = d3dshot.create()
-        d.display = d.displays[0]
-    
+    while True:
+        print("Connecting to serial...")
+        resetSerial = time.time()
+        ser = serial.Serial(port=serialPort, baudrate=115200)
         pixelColorState = {}
+
         while ser.isOpen():
-            #Take screenshot
+            cycleTimeStart = time.time()
+            #print("Taking screenshot")
             img = d.screenshot()
             #Use resize for color averaging
             resizedImg = img.resize(size=(xSegs, ySegs)).load()
@@ -43,12 +44,17 @@ def main(serialPort, xSegs, ySegs, refreshRate):
                     pixelColorState.update({pixelIndex:[r,g,b]})
                     print({pixelIndex:[r,g,b]})
             serialData.append(62) #> to complete serial data
+            
+            if len(serialData) > 2:
+                ser.write(bytes(serialData))
+                ser.reset_input_buffer() #Dump rx buffer.  We don't care about serial returns
 
-            ser.write(bytes(serialData))
-            ser.reset_input_buffer() #Dump rx buffer.  We don't care about serial returns
-
-            #print("Cycle runtime: {} ms".format(round(time.time() - cycleTimeStart, 2))) # .1 s           
+            print("Cycle runtime: {} ms".format(round(time.time() - cycleTimeStart, 2))) # .1 s           
             time.sleep(1/refreshRate)
+
+            if (time.time() - resetSerial) >= resetSerialTimer:
+                print("Resetting serial connection")
+                ser.close()
     
 if __name__=="__main__":
     parser = argparse.ArgumentParser(description=__doc__)
