@@ -1,10 +1,11 @@
 """
-    Seems to cap out around 16 segments
+    
 """
 import argparse
 import serial
 import time
 import d3dshot
+import atexit
 
 def main(serialPort, xSegs, ySegs, refreshRate):
     print("Starting LED Controller...")
@@ -23,10 +24,12 @@ def main(serialPort, xSegs, ySegs, refreshRate):
 
         while ser.isOpen():
             cycleTimeStart = time.time()
-            #print("Taking screenshot")
             img = d.screenshot()
+            #print("SS time: {} ms".format(round(time.time() - cycleTimeStart, 2)))  #~.05s
+
             #Use resize for color averaging
             resizedImg = img.resize(size=(xSegs, ySegs)).load()
+            #print("RS time: {} ms".format(round(time.time() - cycleTimeStart, 2))) #~.01s
 
             #Build serial data
             serialData = []
@@ -44,7 +47,10 @@ def main(serialPort, xSegs, ySegs, refreshRate):
                     pixelColorState.update({pixelIndex:[r,g,b]})
                     print({pixelIndex:[r,g,b]})
             serialData.append(62) #> to complete serial data
-            
+
+            #Serial build time is negligible
+            #print("serialData build time: {} ms".format(round(time.time() - cycleTimeStart, 2)))
+
             if len(serialData) > 2:
                 ser.write(bytes(serialData))
                 ser.reset_input_buffer() #Dump rx buffer.  We don't care about serial returns
@@ -59,9 +65,9 @@ def main(serialPort, xSegs, ySegs, refreshRate):
 if __name__=="__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('serialPort', help="Serial port")
-    parser.add_argument('--xSegs', '-x', default=16, help='X LED segment count. NOTE: LED Ct/Segments must be an int')
+    parser.add_argument('--xSegs', '-x', default=30, help='X LED count.')
     parser.add_argument('--ySegs', '-y', default=8, help='Y screen segment count. Used for sampling resolution.')
-    parser.add_argument('--refreshRate', '-z', default=120, help='Refresh rate Hz')
+    parser.add_argument('--refreshRate', '-z', default=240, help='Refresh rate Hz')
     #parser.add_argument('--redBias', '-r', default=16, help='Red RGB value bias') #Maybe?
     #parser.add_argument('--greenBias', '-g', default=16, help='Green RGB value bias')
     #parser.add_argument('--blueBias', '-b', default=120, help='Blue RGB value bias')
