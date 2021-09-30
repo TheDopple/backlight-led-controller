@@ -8,36 +8,39 @@ import d3dshot
 import atexit
 
 class ledController:
-    def __init__(self, serialPort, xSegs, ySegs, refreshRate_s, baud=115200, resetSer_s=600):
+    def __init__(self, serialPort, xSegs, ySegs, refreshRate_s, baud=115200, resetSer_s=300, monitorIndex=0):
         self.xSegs = int(xSegs)
         self.ySegs = int(ySegs)
         self.refreshRate_s = int(refreshRate_s)
+        self.serialPort = serialPort.strip().upper()
+        self.baud = int(baud)
+        self.resetSer_s = int(resetSer_s)
 
         self.d = d3dshot.create()
-
-        self.serialPort = serialPort
-        self.baud = baud
-        self.resetSer_s = resetSer_s
-        self.resetTimer = time.time()
-
-        self._connectSer()
-
+        self.d.display = self.d.displays[int(monitorIndex)]
         self.pixelColorState = {}
+
+        self.resetTimer = time.time()
+        self._connectSer()
     
     def _connectSer(self):
-        self.ser = serial.Serial(port=self.serialPort, baudrate=int(self.baud))
+        self.ser = serial.Serial(port=self.serialPort, baudrate=self.baud)
+        return
 
     def _resetSer(self):
-        print("Resetting Serial...")
+        print("\n\n\nResetting Serial...\n\n\n")
+
         self.ser.close()
         time.sleep(.1)
-        self.resetTimer = time.time()
         self._connectSer()
 
-    def _serialPayloadBuilder(self, img):
+        self.resetTimer = time.time()
+        self.start()
+        return
+
+    def _serialDataHandler(self, img):
         #Build serial data
-        serialData = []
-        serialData.append(60) #< to start serial data
+        serialData = [60] #< to start serial data
         for pixelIndex in range(self.xSegs):
             r = img[pixelIndex,0][0] #1B Red value uint_8
             g = img[pixelIndex,0][1] #1B Blue value uint_8
@@ -51,33 +54,37 @@ class ledController:
                 serialData.append(b) 
                 self.pixelColorState.update({pixelIndex:[r,g,b]})
         serialData.append(62) #> to complete serial data
-    
-        return serialData
+
+        if len(serialData) > 2:
+            self.ser.write(bytes(serialData))
+            self.ser.reset_input_buffer()
+        return
 
     def _takeCurrentScreenshot(self):
         #Screenshots primary monitor, reduces pixels to xSegs,ySegs for color averaging
         return self.d.screenshot().resize(size=(self.xSegs, self.ySegs)).load()
 
     def start(self):
-        while self.ser.isOpen():
-            cycleTimeStart = time.time()
+        try:
+            while self.ser.isOpen():
+                cycleTimeStart = time.time()
+                self._serialDataHandler(self._takeCurrentScreenshot())
+                print("Cycle runtime: {} ms".format(round(time.time() - cycleTimeStart, 2)))
 
-            serialData = self._serialPayloadBuilder(self._takeCurrentScreenshot())
-            if len(serialData) > 2:
-                self.ser.write(bytes(serialData))
-                self.ser.reset_input_buffer()
+                if time.time() - self.resetTimer >= self.resetSer_s: 
+                    self._resetSer()
+                    break
 
-            print("Cycle runtime: {} ms".format(round(time.time() - cycleTimeStart, 2)))
-            if time.time() - self.resetTimer >= self.resetSer_s: self._resetSer()
-            time.sleep(1/self.refreshRate_s)  #Let's not blow up serial
+                #time.sleep(1/self.refreshRate_s)  #Let's not blow up serial
+                #time.sleep(.5)  #testing
+        except:
+            self._exit()
 
-    #needs fixin
-    #@atexit.register 
     def _exit(self):
         #Set all LEDs to 0,0,0 and close serial cxn
         pixelClearPld = []
         pixelClearPld.append(60)
-        for i in range(0,xSegs):
+        for i in range(0,self.xSegs):
             pixelClearPld.append(i)
             pixelClearPld.append(0)
             pixelClearPld.append(0)
